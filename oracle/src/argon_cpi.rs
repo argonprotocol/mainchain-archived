@@ -1,61 +1,44 @@
-use crate::utils::to_fixed_i128;
-use sp_runtime::{traits::One, FixedI128, FixedPointNumber, FixedU128};
+use sp_runtime::{
+	traits::{CheckedDiv, One, Zero},
+	FixedI128, FixedPointNumber, FixedU128,
+};
+
 use ulx_primitives::ArgonCPI;
 
-pub fn calculate_argon_cpi(us_cpi_ratio: FixedI128, argon_usd_price: FixedU128) -> ArgonCPI {
-	let inverted_argon_price =
-		to_fixed_i128(argon_usd_price).reciprocal().unwrap() - FixedI128::one();
-
-	us_cpi_ratio + inverted_argon_price
+pub fn calculate_argon_cpi(target_argon_price: FixedU128, argon_usd_price: FixedU128) -> ArgonCPI {
+	let ratio = target_argon_price.checked_div(&argon_usd_price).unwrap_or(FixedU128::zero());
+	ArgonCPI::from_inner(ratio.into_inner() as i128) - FixedI128::one()
 }
 
 #[cfg(test)]
 mod test {
-	use super::*;
 	use sp_runtime::FixedU128;
 
+	use super::*;
+
 	#[test]
-	fn test_calculate_argon_cpi() {
-		let us_cpi_ratio = FixedI128::from_float(0.00);
+	fn price_below_target_means_deflation() {
+		let target_price = FixedU128::from_float(1.10);
 		let argon_usd_price = FixedU128::from_float(1.00);
 
-		assert_eq!(calculate_argon_cpi(us_cpi_ratio, argon_usd_price), ArgonCPI::from_float(0.0));
+		assert!(calculate_argon_cpi(target_price, argon_usd_price).is_positive());
 	}
 
 	#[test]
-	fn rising_argon_price_should_decrease_cpi() {
-		let us_cpi_ratio = FixedI128::from_float(0.00);
-		let argon_usd_price = FixedU128::from_float(2.00);
+	fn price_above_target_means_inflation() {
+		let target_price = FixedU128::from_float(1.10);
+		let argon_usd_price = FixedU128::from_float(1.15);
 
-		assert_eq!(calculate_argon_cpi(us_cpi_ratio, argon_usd_price), ArgonCPI::from_float(-0.5));
-	}
-
-	#[test]
-	fn falling_argon_price_should_increase_cpi() {
-		let us_cpi_ratio = FixedI128::from_float(0.00);
-		let argon_usd_price = FixedU128::from_float(0.75);
-
-		assert_eq!(
-			calculate_argon_cpi(us_cpi_ratio, argon_usd_price),
-			ArgonCPI::from_rational(1, 3) // 1/0.75 = 1.3333
-		);
-	}
-
-	#[test]
-	fn inflation_in_usd_decreases_cpi() {
-		let us_cpi_ratio = FixedI128::from_float(0.01);
-		let argon_usd_price = FixedU128::from_float(1.00);
-
-		assert_eq!(calculate_argon_cpi(us_cpi_ratio, argon_usd_price), ArgonCPI::from_float(0.01));
+		assert!(calculate_argon_cpi(target_price, argon_usd_price).is_negative());
 	}
 
 	#[test]
 	fn equilibrium_should_have_0_cpi() {
-		let us_cpi_ratio = FixedI128::from_float(0.1);
-		let argon_usd_price = FixedU128::from_float(1.11);
+		let target_price = FixedU128::from_float(1.15);
+		let argon_usd_price = FixedU128::from_float(1.15);
 
 		assert_eq!(
-			calculate_argon_cpi(us_cpi_ratio, argon_usd_price).round(),
+			calculate_argon_cpi(target_price, argon_usd_price).round(),
 			ArgonCPI::from_float(0.0)
 		);
 	}

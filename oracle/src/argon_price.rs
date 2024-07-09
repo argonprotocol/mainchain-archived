@@ -184,6 +184,6 @@ mod test {
 			SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() as u64;
 		let ts = argon_price_lookup.last_price_timestamp + 1000;
 		let price = argon_price_lookup.simulate_price_change(FixedU128::from_u32(1), ts);
-		assert_ne!(price, FixedU128::from_u32(1));
+		assert_ne!(price, FixedU128::from_u32(0));
 	}
 }

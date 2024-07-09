@@ -55,6 +55,7 @@ pub async fn price_index_loop(
 
 		let timestamp = ticker.time_for_tick(ticker.current());
 		let us_cpi_ratio = us_cpi.get_us_cpi_ratio(timestamp);
+		let target_price = argon_price_lookup.get_target_price(us_cpi_ratio);
 		let argon_usd_price =
 			match argon_price_lookup.get_argon_price(us_cpi_ratio, timestamp).await {
 				Ok(x) => x,
@@ -64,7 +65,7 @@ pub async fn price_index_loop(
 				},
 			};
 
-		let argon_cpi = calculate_argon_cpi(us_cpi_ratio, argon_usd_price);
+		let argon_cpi = calculate_argon_cpi(target_price, argon_usd_price);
 
 		info!(
 			"Current CPI: {:?}, argon price {:?} at {:?}",
