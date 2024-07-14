@@ -1,16 +1,17 @@
+use crate::{
+	us_cpi_schedule::{load_cpi_schedule, CpiSchedule},
+	utils::{parse_date, parse_f64, to_fixed_i128},
+};
 use anyhow::{anyhow, ensure, Result};
 use chrono::{DateTime, Utc};
 use lazy_static::lazy_static;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use sp_runtime::{traits::One, FixedI128, FixedU128};
+#[cfg(test)]
 use std::sync::{Arc, Mutex};
 use tokio::time::{Duration, Instant};
-
-use crate::{
-	us_cpi_schedule::{load_cpi_schedule, CpiSchedule},
-	utils::{parse_date, parse_f64, to_fixed_i128},
-};
+use ulx_primitives::tick::{Tick, Ticker};
 
 const MAX_SCHEDULE_DAYS: u32 = 35;
 const MIN_SCHEDULE_DAYS: u32 = 28;
@@ -38,40 +39,42 @@ lazy_static! {
 
 pub struct UsCpiRetriever {
 	pub schedule: Vec<CpiSchedule>,
-	pub current_cpi_release_date: DateTime<Utc>,
-	pub current_cpi_duration: Duration,
+	pub current_cpi_release_tick: Tick,
+	pub current_cpi_duration_ticks: Tick,
 	pub current_cpi_end_value: FixedU128,
 	pub current_cpi_ref_month: DateTime<Utc>,
 	pub previous_us_cpi: FixedU128,
-	pub cpi_change_per_interval: FixedI128,
+	pub cpi_change_per_tick: FixedI128,
 	pub last_schedule_check: Instant,
 	pub last_cpi_check: Instant,
-	pub submission_interval: Duration,
+	pub ticker: Ticker,
 }
 
 impl UsCpiRetriever {
-	pub async fn new(intervals: Duration) -> Result<Self> {
+	pub async fn new(ticker: &Ticker) -> Result<Self> {
 		let schedule = load_cpi_schedule().await?;
 		let cpis = get_raw_cpis().await?;
 		let current = cpis.first().ok_or(anyhow!("No CPI data"))?;
 		let previous = cpis.get(1).ok_or(anyhow!("No previous CPI data"))?;
-		let current_cpi_release_date = Self::get_release_date(&schedule, current.ref_month)
-			.ok_or(anyhow!("No release date found for current CPI"))?;
-		let current_cpi_duration = Self::duration_to_next_cpi(&schedule, current.ref_month);
+		let current_cpi_release_tick =
+			Self::get_release_date_tick(&ticker, &schedule, current.ref_month)
+				.ok_or(anyhow!("No release date found for current CPI"))?;
+		let current_cpi_duration_ticks =
+			Self::ticks_to_next_cpi(ticker, &schedule, current.ref_month);
 
 		let mut entry = Self {
 			schedule,
-			current_cpi_duration,
-			current_cpi_release_date,
+			current_cpi_duration_ticks,
+			current_cpi_release_tick,
 			current_cpi_end_value: current.value,
 			current_cpi_ref_month: current.ref_month,
 			previous_us_cpi: previous.value,
 			last_schedule_check: Instant::now(),
-			submission_interval: intervals,
+			ticker: ticker.clone(),
 			last_cpi_check: Instant::now(),
-			cpi_change_per_interval: FixedI128::from_u32(0),
+			cpi_change_per_tick: FixedI128::from_u32(0),
 		};
-		entry.cpi_change_per_interval = entry.calculate_cpi_change_per_interval();
+		entry.cpi_change_per_tick = entry.calculate_cpi_change_per_tick();
 
 		Ok(entry)
 	}
@@ -90,48 +93,43 @@ impl UsCpiRetriever {
 			self.previous_us_cpi = self.current_cpi_end_value;
 			self.current_cpi_end_value = next_cpi.value;
 			self.current_cpi_ref_month = next_cpi.ref_month;
-			self.current_cpi_duration =
-				Self::duration_to_next_cpi(&self.schedule, self.current_cpi_ref_month);
-			self.current_cpi_release_date =
-				Self::get_release_date(&self.schedule, self.current_cpi_ref_month)
-					.ok_or(anyhow!("No release date found for current CPI"))?
-					.clone();
+			self.current_cpi_duration_ticks =
+				Self::ticks_to_next_cpi(&self.ticker, &self.schedule, self.current_cpi_ref_month);
+			self.current_cpi_release_tick = Self::get_release_date_tick(
+				&self.ticker,
+				&self.schedule,
+				self.current_cpi_ref_month,
+			)
+			.ok_or(anyhow!("No release date found for current CPI"))?
+			.clone();
 			self.last_cpi_check = now;
-			self.cpi_change_per_interval = self.calculate_cpi_change_per_interval();
+			self.cpi_change_per_tick = self.calculate_cpi_change_per_tick();
 		}
 		Ok(())
 	}
 
 	/// Returns the ratio of the current CPI to the baseline CPI (minus 1).
-	pub fn get_us_cpi_ratio(&self, time_millis: u64) -> FixedI128 {
-		let current_cpi = self.calculate_smoothed_us_cpi_ratio(time_millis);
+	pub fn get_us_cpi_ratio(&self, tick: Tick) -> FixedI128 {
+		let current_cpi = self.calculate_smoothed_us_cpi_ratio(tick);
 		let baseline = to_fixed_i128(*BASELINE_CPI);
 		let cpi_ratio = (current_cpi / baseline) - FixedI128::one();
 		cpi_ratio
 	}
 
-	fn calculate_smoothed_us_cpi_ratio(&self, time_millis: u64) -> FixedI128 {
-		let slots = FixedI128::from_u32(self.intervals_since_last_cpi(time_millis));
+	fn calculate_smoothed_us_cpi_ratio(&self, tick: Tick) -> FixedI128 {
+		let ticks = FixedI128::from_u32(self.ticks_since_last_cpi(tick));
 		let previous_cpi = to_fixed_i128(self.previous_us_cpi);
-		(self.cpi_change_per_interval * slots) + previous_cpi
+		(self.cpi_change_per_tick * ticks) + previous_cpi
 	}
 
-	fn intervals_since_last_cpi(&self, time_millis: u64) -> u32 {
-		let now = DateTime::from_timestamp_millis(time_millis as i64).unwrap();
-		let last_cpi = self.current_cpi_release_date;
-		let slots = (now - last_cpi).num_seconds() / self.submission_interval.as_secs() as i64;
-		slots as u32
+	fn ticks_since_last_cpi(&self, tick: Tick) -> Tick {
+		tick.saturating_sub(self.current_cpi_release_tick)
 	}
 
-	fn calculate_cpi_change_per_interval(&self) -> FixedI128 {
-		let slots = self.current_cpi_duration.as_secs() / self.submission_interval.as_secs();
-		let slots = FixedI128::from_float(slots as f64);
+	fn calculate_cpi_change_per_tick(&self) -> FixedI128 {
+		let ticks = FixedI128::from_float(self.current_cpi_duration_ticks as f64);
 
-		let banded_diff =
-			Self::get_clamped_cpi_change(self.previous_us_cpi, self.current_cpi_end_value);
-		let change_per_slot = banded_diff.div(slots);
-
-		change_per_slot
+		Self::get_clamped_cpi_change(self.previous_us_cpi, self.current_cpi_end_value) / ticks
 	}
 
 	fn get_clamped_cpi_change(start: FixedU128, end: FixedU128) -> FixedI128 {
@@ -148,12 +146,18 @@ impl UsCpiRetriever {
 		clamped_diff
 	}
 
-	fn duration_to_next_cpi(schedule: &[CpiSchedule], ref_month: DateTime<Utc>) -> Duration {
+	fn ticks_to_next_cpi(
+		ticker: &Ticker,
+		schedule: &[CpiSchedule],
+		ref_month: DateTime<Utc>,
+	) -> Tick {
 		let Some(index) = schedule.iter().position(|s| s.ref_month == ref_month) else {
-			return Duration::from_secs(MIN_SCHEDULE_DAYS as u64 * ONE_DAY);
+			let duration = Duration::from_secs(MIN_SCHEDULE_DAYS as u64 * ONE_DAY);
+			return ticker.ticks_for_duration(duration);
 		};
 		if index == schedule.len() - 1 {
-			return Duration::from_secs(MIN_SCHEDULE_DAYS as u64 * ONE_DAY);
+			let duration = Duration::from_secs(MIN_SCHEDULE_DAYS as u64 * ONE_DAY);
+			return ticker.ticks_for_duration(duration);
 		}
 
 		let release_date = schedule[index].release_date;
@@ -165,16 +169,21 @@ impl UsCpiRetriever {
 			.min(MAX_SCHEDULE_DAYS as i64)
 			.max(MIN_SCHEDULE_DAYS as i64);
 
-		Duration::from_secs(days as u64 * ONE_DAY)
+		let days_duration = Duration::from_secs(days as u64 * ONE_DAY);
+		ticker.ticks_for_duration(days_duration)
 	}
-	fn get_release_date(
+
+	fn get_release_date_tick(
+		ticker: &Ticker,
 		schedule: &[CpiSchedule],
 		ref_month: DateTime<Utc>,
-	) -> Option<DateTime<Utc>> {
+	) -> Option<Tick> {
 		let Some(index) = schedule.iter().position(|s| s.ref_month == ref_month) else {
 			return None;
 		};
-		Some(schedule[index].release_date)
+		let date = schedule[index].release_date;
+		let millis = date.timestamp_millis() as u64;
+		Some(ticker.tick_for_time(millis))
 	}
 }
 
@@ -184,7 +193,8 @@ lazy_static! {
 }
 
 async fn get_raw_cpis() -> Result<Vec<RawCpiValue>> {
-	if cfg![test] {
+	#[cfg(test)]
+	{
 		let mut mock = MOCK_RAW_CPIS.lock().unwrap();
 		if let Some(results) = mock.take() {
 			*mock = Some(results.clone());
@@ -220,7 +230,8 @@ fn parse_cpi_results(resp_price: String) -> Result<Vec<RawCpiValue>> {
 }
 
 async fn get_raw_cpi() -> Result<RawCpiValue> {
-	if cfg![test] {
+	#[cfg(test)]
+	{
 		let mut mock = MOCK_RAW_CPIS.lock().unwrap();
 		if let Some(results) = mock.take() {
 			*mock = Some(results.clone());
@@ -325,21 +336,26 @@ mod tests {
 
 	#[test]
 	fn test_can_smooth_out_cpi() {
-		let intervals = Duration::from_secs(60);
 		let previous_cpi = *BASELINE_CPI;
+		let start_time = parse_date("1 April 2024", vec!["%d %B %Y"]).unwrap();
+		let ticker = Ticker::new(60_000, start_time.timestamp_millis() as u64);
 
 		let mut retriever = UsCpiRetriever {
 			schedule: vec![],
 			current_cpi_end_value: previous_cpi + FixedU128::from_float(100.0),
-			current_cpi_duration: Duration::from_secs(28 * ONE_DAY),
+			current_cpi_duration_ticks: ticker
+				.ticks_for_duration(Duration::from_secs(28 * ONE_DAY)),
 			current_cpi_ref_month: parse_date("1 April 2024", vec!["%d %B %Y"]).unwrap(),
-			current_cpi_release_date: parse_date("May 15, 2024", vec!["%b %d, %Y", "%b. %d, %Y"])
-				.unwrap(),
+			current_cpi_release_tick: ticker.tick_for_time(
+				parse_date("May 15, 2024", vec!["%b %d, %Y", "%b. %d, %Y"])
+					.unwrap()
+					.timestamp_millis() as u64,
+			),
 			previous_us_cpi: previous_cpi,
-			cpi_change_per_interval: FixedI128::from_u32(0),
+			cpi_change_per_tick: FixedI128::from_u32(0),
 			last_schedule_check: Instant::now(),
 			last_cpi_check: Instant::now(),
-			submission_interval: intervals,
+			ticker: ticker.clone(),
 		};
 		retriever.schedule = vec![
 			CpiSchedule {
@@ -352,11 +368,12 @@ mod tests {
 			},
 		];
 		assert_eq!(
-			UsCpiRetriever::duration_to_next_cpi(
+			UsCpiRetriever::ticks_to_next_cpi(
+				&ticker,
 				&retriever.schedule,
 				retriever.current_cpi_ref_month
 			),
-			Duration::from_secs(ONE_DAY * 28)
+			ticker.ticks_for_duration(Duration::from_secs(ONE_DAY * 28))
 		);
 		// should clamp the difference to the 5-95% band
 		assert_eq!(
@@ -385,27 +402,15 @@ mod tests {
 			FixedI128::one()
 		);
 
-		let interval_count = retriever.current_cpi_duration.as_secs() / intervals.as_secs();
-		retriever.cpi_change_per_interval = retriever.calculate_cpi_change_per_interval();
-		assert_eq!(
-			retriever.cpi_change_per_interval,
-			FixedI128::one().div(FixedI128::from_u32(interval_count as u32))
-		);
+		let ticks = retriever.current_cpi_duration_ticks;
+		retriever.cpi_change_per_tick = retriever.calculate_cpi_change_per_tick();
+		assert_eq!(retriever.cpi_change_per_tick, FixedI128::one().div(FixedI128::from_u32(ticks)));
 
+		assert_eq!(retriever.ticks_since_last_cpi(retriever.current_cpi_release_tick + 1), 1);
 		assert_eq!(
-			retriever.intervals_since_last_cpi(
-				retriever.current_cpi_release_date.timestamp_millis() as u64 +
-					intervals.as_millis() as u64
-			),
-			1
-		);
-		assert_eq!(
-			retriever.get_us_cpi_ratio(
-				retriever.current_cpi_release_date.timestamp_millis() as u64 +
-					10 * intervals.as_millis() as u64
-			),
+			retriever.get_us_cpi_ratio(retriever.current_cpi_release_tick + 10),
 			((to_fixed_i128(retriever.previous_us_cpi) +
-				(FixedI128::from_u32(10) * retriever.cpi_change_per_interval)) /
+				(FixedI128::from_u32(10) * retriever.cpi_change_per_tick)) /
 				to_fixed_i128(retriever.previous_us_cpi)) -
 				FixedI128::one()
 		);
@@ -413,27 +418,33 @@ mod tests {
 
 	#[test]
 	fn calculates_intervals_elapsed() {
-		let intervals = Duration::from_secs(60);
+		let start_time = parse_date("1 April 2024", vec!["%d %B %Y"]).unwrap();
+		let ticker = Ticker::new(60_000, start_time.timestamp_millis() as u64);
 		let retriever = UsCpiRetriever {
 			schedule: vec![],
 			current_cpi_end_value: FixedU128::from_u32(300),
-			current_cpi_duration: Duration::from_secs(28 * ONE_DAY),
-			current_cpi_release_date: parse_date("May 15, 2024", vec!["%b %d, %Y", "%b. %d, %Y"])
-				.unwrap(),
+			current_cpi_duration_ticks: ticker
+				.ticks_for_duration(Duration::from_secs(28 * ONE_DAY)),
+			current_cpi_release_tick: ticker.tick_for_time(
+				parse_date("May 15, 2024", vec!["%b %d, %Y", "%b. %d, %Y"])
+					.unwrap()
+					.timestamp_millis() as u64,
+			),
 			current_cpi_ref_month: parse_date("1 April 2024", vec!["%d %B %Y"]).unwrap(),
 			previous_us_cpi: FixedU128::from_u32(200),
-			cpi_change_per_interval: FixedI128::from_u32(0),
+			cpi_change_per_tick: FixedI128::from_u32(0),
 			last_schedule_check: Instant::now(),
 			last_cpi_check: Instant::now(),
-			submission_interval: intervals,
+			ticker: ticker.clone(),
 		};
 		let timestamp =
 			parse_date("15 May 2024", vec!["%d %B %Y"]).unwrap().timestamp_millis() as u64;
-		assert_eq!(retriever.intervals_since_last_cpi(timestamp), 0);
-		assert_eq!(retriever.intervals_since_last_cpi(timestamp + 60 * 1000), 1);
-		assert_eq!(retriever.intervals_since_last_cpi(timestamp + 60 * 7500), 7);
-		assert_eq!(retriever.intervals_since_last_cpi(timestamp + 60 * 1000 * 30), 30);
-		assert_eq!(retriever.intervals_since_last_cpi(timestamp + 60 * 1000 * 60), 60);
-		assert_eq!(retriever.intervals_since_last_cpi(timestamp + 60 * 1000 * 60 * 24), 24 * 60);
+		let tick = ticker.tick_for_time(timestamp);
+		assert_eq!(retriever.ticks_since_last_cpi(tick), 0);
+		assert_eq!(retriever.ticks_since_last_cpi(tick + 1), 1);
+		assert_eq!(retriever.ticks_since_last_cpi(tick + 7), 7);
+		assert_eq!(retriever.ticks_since_last_cpi(tick + 30), 30);
+		assert_eq!(retriever.ticks_since_last_cpi(tick + 60), 60);
+		assert_eq!(retriever.ticks_since_last_cpi(tick + 60 * 24), 24 * 60);
 	}
 }

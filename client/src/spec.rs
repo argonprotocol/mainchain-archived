@@ -1060,9 +1060,10 @@ pub mod api {
 						"query_call_info",
 						types::QueryCallInfo { call, len },
 						[
-							138u8, 134u8, 247u8, 45u8, 24u8, 232u8, 183u8, 27u8, 110u8, 234u8,
-							33u8, 186u8, 253u8, 7u8, 0u8, 89u8, 156u8, 72u8, 96u8, 97u8, 170u8,
-							106u8, 245u8, 53u8, 154u8, 2u8, 8u8, 5u8, 29u8, 171u8, 185u8, 249u8,
+							238u8, 147u8, 144u8, 202u8, 204u8, 63u8, 183u8, 82u8, 80u8, 87u8,
+							114u8, 153u8, 4u8, 27u8, 169u8, 41u8, 171u8, 45u8, 142u8, 72u8, 6u8,
+							67u8, 187u8, 213u8, 40u8, 63u8, 202u8, 243u8, 107u8, 213u8, 220u8,
+							240u8,
 						],
 					)
 				}
@@ -1080,9 +1081,9 @@ pub mod api {
 						"query_call_fee_details",
 						types::QueryCallFeeDetails { call, len },
 						[
-							160u8, 126u8, 34u8, 60u8, 235u8, 4u8, 2u8, 54u8, 49u8, 129u8, 72u8,
-							4u8, 210u8, 245u8, 244u8, 109u8, 169u8, 224u8, 170u8, 117u8, 163u8,
-							43u8, 202u8, 43u8, 111u8, 33u8, 131u8, 57u8, 9u8, 121u8, 73u8, 191u8,
+							178u8, 254u8, 94u8, 224u8, 73u8, 18u8, 108u8, 10u8, 8u8, 21u8, 208u8,
+							117u8, 45u8, 199u8, 121u8, 245u8, 196u8, 19u8, 13u8, 152u8, 40u8, 54u8,
+							137u8, 230u8, 212u8, 76u8, 63u8, 94u8, 158u8, 63u8, 18u8, 143u8,
 						],
 					)
 				}
@@ -2626,9 +2627,9 @@ pub mod api {
 			.hash();
 		runtime_metadata_hash ==
 			[
-				203u8, 166u8, 178u8, 78u8, 14u8, 6u8, 81u8, 241u8, 116u8, 187u8, 161u8, 227u8,
-				96u8, 13u8, 74u8, 40u8, 38u8, 104u8, 1u8, 78u8, 185u8, 252u8, 7u8, 123u8, 46u8,
-				221u8, 205u8, 124u8, 196u8, 252u8, 172u8, 44u8,
+				117u8, 207u8, 191u8, 111u8, 84u8, 232u8, 46u8, 166u8, 95u8, 254u8, 78u8, 119u8,
+				22u8, 192u8, 217u8, 120u8, 243u8, 10u8, 113u8, 38u8, 57u8, 254u8, 82u8, 175u8,
+				207u8, 193u8, 255u8, 122u8, 99u8, 107u8, 217u8, 242u8,
 			]
 	}
 	pub mod system {
@@ -4436,10 +4437,9 @@ pub mod api {
 							call: ::std::boxed::Box::new(call),
 						},
 						[
-							241u8, 216u8, 147u8, 153u8, 28u8, 97u8, 89u8, 164u8, 5u8, 155u8, 129u8,
-							172u8, 96u8, 67u8, 128u8, 199u8, 230u8, 254u8, 106u8, 68u8, 225u8,
-							209u8, 113u8, 192u8, 123u8, 162u8, 218u8, 124u8, 184u8, 10u8, 242u8,
-							29u8,
+							237u8, 45u8, 174u8, 84u8, 152u8, 46u8, 63u8, 88u8, 225u8, 179u8, 68u8,
+							23u8, 3u8, 0u8, 184u8, 253u8, 217u8, 67u8, 197u8, 95u8, 44u8, 116u8,
+							61u8, 110u8, 99u8, 133u8, 98u8, 209u8, 252u8, 3u8, 174u8, 202u8,
 						],
 					)
 				}
@@ -4501,9 +4501,10 @@ pub mod api {
 							max_weight,
 						},
 						[
-							101u8, 159u8, 171u8, 93u8, 179u8, 155u8, 64u8, 65u8, 81u8, 104u8, 2u8,
-							96u8, 30u8, 89u8, 65u8, 120u8, 94u8, 85u8, 188u8, 157u8, 125u8, 168u8,
-							87u8, 245u8, 162u8, 198u8, 200u8, 111u8, 33u8, 201u8, 113u8, 235u8,
+							249u8, 27u8, 37u8, 204u8, 20u8, 99u8, 200u8, 115u8, 211u8, 94u8, 219u8,
+							233u8, 207u8, 49u8, 248u8, 102u8, 122u8, 109u8, 133u8, 155u8, 179u8,
+							115u8, 162u8, 228u8, 217u8, 215u8, 179u8, 65u8, 121u8, 131u8, 234u8,
+							223u8,
 						],
 					)
 				}
@@ -5278,9 +5279,9 @@ pub mod api {
 						"proxy",
 						types::Proxy { real, force_proxy_type, call: ::std::boxed::Box::new(call) },
 						[
-							185u8, 237u8, 172u8, 58u8, 198u8, 63u8, 51u8, 53u8, 28u8, 22u8, 166u8,
-							124u8, 14u8, 32u8, 228u8, 224u8, 103u8, 206u8, 5u8, 133u8, 95u8, 231u8,
-							125u8, 242u8, 84u8, 252u8, 195u8, 0u8, 201u8, 119u8, 41u8, 178u8,
+							31u8, 60u8, 179u8, 91u8, 155u8, 95u8, 244u8, 26u8, 12u8, 44u8, 199u8,
+							206u8, 40u8, 120u8, 92u8, 59u8, 217u8, 213u8, 41u8, 45u8, 197u8, 191u8,
+							75u8, 214u8, 22u8, 176u8, 55u8, 202u8, 128u8, 42u8, 228u8, 123u8,
 						],
 					)
 				}
@@ -5536,9 +5537,9 @@ pub mod api {
 							call: ::std::boxed::Box::new(call),
 						},
 						[
-							64u8, 120u8, 66u8, 243u8, 43u8, 42u8, 147u8, 209u8, 255u8, 246u8, 96u8,
-							190u8, 154u8, 123u8, 201u8, 248u8, 21u8, 234u8, 43u8, 136u8, 120u8,
-							83u8, 132u8, 75u8, 4u8, 93u8, 100u8, 42u8, 6u8, 230u8, 109u8, 41u8,
+							241u8, 114u8, 191u8, 106u8, 155u8, 180u8, 134u8, 208u8, 110u8, 160u8,
+							78u8, 239u8, 24u8, 2u8, 67u8, 20u8, 209u8, 183u8, 196u8, 194u8, 213u8,
+							44u8, 57u8, 39u8, 178u8, 70u8, 168u8, 167u8, 65u8, 26u8, 56u8, 3u8,
 						],
 					)
 				}
@@ -11352,8 +11353,7 @@ pub mod api {
 				}
 				pub mod submit {
 					use super::runtime_types;
-					pub type Index =
-						runtime_types::pallet_price_index::PriceIndex<::core::primitive::u64>;
+					pub type Index = runtime_types::pallet_price_index::PriceIndex;
 				}
 				impl ::subxt::blocks::StaticExtrinsic for Submit {
 					const PALLET: &'static str = "PriceIndex";
@@ -11398,10 +11398,10 @@ pub mod api {
 						"submit",
 						types::Submit { index },
 						[
-							159u8, 72u8, 123u8, 240u8, 209u8, 109u8, 40u8, 142u8, 13u8, 176u8,
-							45u8, 100u8, 252u8, 199u8, 133u8, 34u8, 96u8, 74u8, 163u8, 57u8, 129u8,
-							130u8, 102u8, 9u8, 248u8, 73u8, 226u8, 148u8, 186u8, 38u8, 232u8,
-							166u8,
+							94u8, 206u8, 248u8, 131u8, 143u8, 26u8, 189u8, 238u8, 151u8, 78u8,
+							199u8, 145u8, 127u8, 63u8, 30u8, 175u8, 198u8, 197u8, 104u8, 233u8,
+							136u8, 107u8, 51u8, 152u8, 204u8, 139u8, 234u8, 143u8, 37u8, 113u8,
+							224u8, 28u8,
 						],
 					)
 				}
@@ -11476,8 +11476,7 @@ pub mod api {
 				use super::runtime_types;
 				pub mod current {
 					use super::runtime_types;
-					pub type Current =
-						runtime_types::pallet_price_index::PriceIndex<::core::primitive::u64>;
+					pub type Current = runtime_types::pallet_price_index::PriceIndex;
 				}
 				pub mod operator {
 					use super::runtime_types;
@@ -11501,10 +11500,9 @@ pub mod api {
 						"Current",
 						(),
 						[
-							148u8, 164u8, 32u8, 155u8, 241u8, 242u8, 242u8, 131u8, 183u8, 176u8,
-							219u8, 60u8, 154u8, 32u8, 233u8, 92u8, 11u8, 15u8, 195u8, 34u8, 80u8,
-							219u8, 44u8, 93u8, 138u8, 191u8, 255u8, 25u8, 226u8, 214u8, 141u8,
-							184u8,
+							24u8, 100u8, 2u8, 213u8, 216u8, 27u8, 132u8, 28u8, 34u8, 22u8, 106u8,
+							108u8, 248u8, 161u8, 103u8, 63u8, 82u8, 230u8, 205u8, 44u8, 159u8,
+							38u8, 222u8, 0u8, 8u8, 248u8, 208u8, 161u8, 101u8, 179u8, 132u8, 36u8,
 						],
 					)
 				}
@@ -11536,33 +11534,65 @@ pub mod api {
 			use super::runtime_types;
 			pub struct ConstantsApi;
 			impl ConstantsApi {
-				#[doc = " The maximum number of oracle operators that can be authorized"]
-				pub fn max_downtime_before_reset(
+				#[doc = " The maximum number of ticks to preserve a price index"]
+				pub fn max_downtime_ticks_before_reset(
 					&self,
-				) -> ::subxt::constants::Address<::core::primitive::u64> {
+				) -> ::subxt::constants::Address<::core::primitive::u32> {
 					::subxt::constants::Address::new_static(
 						"PriceIndex",
-						"MaxDowntimeBeforeReset",
+						"MaxDowntimeTicksBeforeReset",
 						[
-							128u8, 214u8, 205u8, 242u8, 181u8, 142u8, 124u8, 231u8, 190u8, 146u8,
-							59u8, 226u8, 157u8, 101u8, 103u8, 117u8, 249u8, 65u8, 18u8, 191u8,
-							103u8, 119u8, 53u8, 85u8, 81u8, 96u8, 220u8, 42u8, 184u8, 239u8, 42u8,
-							246u8,
+							98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+							125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+							178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+							145u8,
 						],
 					)
 				}
 				#[doc = " The oldest history to keep"]
-				pub fn oldest_price_allowed(
+				pub fn max_price_age_in_ticks(
 					&self,
-				) -> ::subxt::constants::Address<::core::primitive::u64> {
+				) -> ::subxt::constants::Address<::core::primitive::u32> {
 					::subxt::constants::Address::new_static(
 						"PriceIndex",
-						"OldestPriceAllowed",
+						"MaxPriceAgeInTicks",
 						[
-							128u8, 214u8, 205u8, 242u8, 181u8, 142u8, 124u8, 231u8, 190u8, 146u8,
-							59u8, 226u8, 157u8, 101u8, 103u8, 117u8, 249u8, 65u8, 18u8, 191u8,
-							103u8, 119u8, 53u8, 85u8, 81u8, 96u8, 220u8, 42u8, 184u8, 239u8, 42u8,
-							246u8,
+							98u8, 252u8, 116u8, 72u8, 26u8, 180u8, 225u8, 83u8, 200u8, 157u8,
+							125u8, 151u8, 53u8, 76u8, 168u8, 26u8, 10u8, 9u8, 98u8, 68u8, 9u8,
+							178u8, 197u8, 113u8, 31u8, 79u8, 200u8, 90u8, 203u8, 100u8, 41u8,
+							145u8,
+						],
+					)
+				}
+				#[doc = " The max price difference dropping below target or raising above target per tick. There's"]
+				#[doc = " no corresponding constant for time to recovery to target"]
+				pub fn max_argon_change_per_tick_away_from_target(
+					&self,
+				) -> ::subxt::constants::Address<runtime_types::sp_arithmetic::fixed_point::FixedU128>
+				{
+					::subxt::constants::Address::new_static(
+						"PriceIndex",
+						"MaxArgonChangePerTickAwayFromTarget",
+						[
+							62u8, 145u8, 102u8, 227u8, 159u8, 92u8, 27u8, 54u8, 159u8, 228u8,
+							193u8, 99u8, 75u8, 196u8, 26u8, 250u8, 229u8, 230u8, 88u8, 109u8,
+							246u8, 100u8, 152u8, 158u8, 14u8, 25u8, 224u8, 173u8, 224u8, 41u8,
+							105u8, 231u8,
+						],
+					)
+				}
+				pub fn max_argon_target_change_per_tick(
+					&self,
+				) -> ::subxt::constants::Address<runtime_types::sp_arithmetic::fixed_point::FixedU128>
+				{
+					::subxt::constants::Address::new_static(
+						"PriceIndex",
+						"MaxArgonTargetChangePerTick",
+						[
+							62u8, 145u8, 102u8, 227u8, 159u8, 92u8, 27u8, 54u8, 159u8, 228u8,
+							193u8, 99u8, 75u8, 196u8, 26u8, 250u8, 229u8, 230u8, 88u8, 109u8,
+							246u8, 100u8, 152u8, 158u8, 14u8, 25u8, 224u8, 173u8, 224u8, 41u8,
+							105u8, 231u8,
 						],
 					)
 				}
@@ -17132,10 +17162,10 @@ pub mod api {
 						"sudo",
 						types::Sudo { call: ::std::boxed::Box::new(call) },
 						[
-							11u8, 220u8, 140u8, 150u8, 109u8, 186u8, 101u8, 133u8, 96u8, 30u8,
-							197u8, 31u8, 254u8, 45u8, 164u8, 126u8, 0u8, 86u8, 31u8, 123u8, 190u8,
-							203u8, 92u8, 158u8, 62u8, 109u8, 21u8, 122u8, 150u8, 111u8, 21u8,
-							175u8,
+							155u8, 144u8, 246u8, 133u8, 31u8, 84u8, 78u8, 227u8, 129u8, 108u8,
+							62u8, 161u8, 77u8, 161u8, 216u8, 196u8, 74u8, 221u8, 191u8, 179u8,
+							137u8, 247u8, 46u8, 208u8, 87u8, 22u8, 32u8, 230u8, 84u8, 140u8, 16u8,
+							140u8,
 						],
 					)
 				}
@@ -17154,10 +17184,9 @@ pub mod api {
 						"sudo_unchecked_weight",
 						types::SudoUncheckedWeight { call: ::std::boxed::Box::new(call), weight },
 						[
-							170u8, 27u8, 245u8, 142u8, 106u8, 219u8, 9u8, 253u8, 170u8, 77u8,
-							134u8, 173u8, 46u8, 137u8, 241u8, 176u8, 79u8, 209u8, 108u8, 53u8,
-							201u8, 221u8, 189u8, 94u8, 211u8, 198u8, 246u8, 31u8, 149u8, 145u8,
-							213u8, 246u8,
+							214u8, 4u8, 191u8, 76u8, 82u8, 35u8, 40u8, 105u8, 153u8, 29u8, 75u8,
+							49u8, 5u8, 6u8, 238u8, 156u8, 46u8, 48u8, 28u8, 88u8, 251u8, 134u8,
+							228u8, 10u8, 122u8, 183u8, 130u8, 185u8, 189u8, 189u8, 215u8, 56u8,
 						],
 					)
 				}
@@ -17192,9 +17221,9 @@ pub mod api {
 						"sudo_as",
 						types::SudoAs { who, call: ::std::boxed::Box::new(call) },
 						[
-							161u8, 175u8, 191u8, 158u8, 5u8, 108u8, 251u8, 50u8, 197u8, 13u8, 16u8,
-							213u8, 226u8, 187u8, 241u8, 27u8, 136u8, 182u8, 223u8, 74u8, 95u8,
-							160u8, 126u8, 34u8, 97u8, 190u8, 91u8, 216u8, 102u8, 7u8, 78u8, 236u8,
+							38u8, 152u8, 192u8, 86u8, 187u8, 116u8, 64u8, 132u8, 8u8, 233u8, 114u8,
+							110u8, 247u8, 144u8, 121u8, 76u8, 213u8, 64u8, 79u8, 88u8, 35u8, 71u8,
+							146u8, 36u8, 215u8, 151u8, 71u8, 221u8, 232u8, 114u8, 152u8, 150u8,
 						],
 					)
 				}
@@ -20623,10 +20652,7 @@ pub mod api {
 				pub enum Call {
 					#[codec(index = 0)]
 					#[doc = "Submit the latest price index. Only valid for the configured operator account"]
-					submit {
-						index:
-							runtime_types::pallet_price_index::PriceIndex<::core::primitive::u64>,
-					},
+					submit { index: runtime_types::pallet_price_index::PriceIndex },
 					#[codec(index = 1)]
 					#[doc = "Sets the operator account id (only executable by the Root account)"]
 					#[doc = ""]
@@ -20656,6 +20682,9 @@ pub mod api {
 					#[codec(index = 2)]
 					#[doc = "The submitted prices are too old"]
 					PricesTooOld,
+					#[codec(index = 3)]
+					#[doc = "Change in argon price is too large"]
+					MaxPriceChangePerTickExceeded,
 				}
 				#[derive(
 					:: subxt :: ext :: codec :: Decode,
@@ -20688,14 +20717,14 @@ pub mod api {
 			# [codec (crate = :: subxt :: ext :: codec)]
 			#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
 			#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-			pub struct PriceIndex<_0> {
+			pub struct PriceIndex {
 				#[codec(compact)]
 				pub btc_usd_price: runtime_types::sp_arithmetic::fixed_point::FixedU128,
 				#[codec(compact)]
 				pub argon_usd_price: runtime_types::sp_arithmetic::fixed_point::FixedU128,
-				pub argon_cpi: runtime_types::sp_arithmetic::fixed_point::FixedI128,
+				pub argon_usd_target_price: runtime_types::sp_arithmetic::fixed_point::FixedU128,
 				#[codec(compact)]
-				pub timestamp: _0,
+				pub tick: ::core::primitive::u32,
 			}
 		}
 		pub mod pallet_proxy {
@@ -21753,18 +21782,6 @@ pub mod api {
 			use super::runtime_types;
 			pub mod fixed_point {
 				use super::runtime_types;
-				#[derive(
-					:: subxt :: ext :: codec :: Decode,
-					:: subxt :: ext :: codec :: Encode,
-					:: subxt :: ext :: scale_decode :: DecodeAsType,
-					:: subxt :: ext :: scale_encode :: EncodeAsType,
-					Clone,
-					Debug,
-				)]
-				# [codec (crate = :: subxt :: ext :: codec)]
-				#[decode_as_type(crate_path = ":: subxt :: ext :: scale_decode")]
-				#[encode_as_type(crate_path = ":: subxt :: ext :: scale_encode")]
-				pub struct FixedI128(pub ::core::primitive::i128);
 				#[derive(
 					:: subxt :: ext :: codec :: CompactAs,
 					:: subxt :: ext :: codec :: Decode,

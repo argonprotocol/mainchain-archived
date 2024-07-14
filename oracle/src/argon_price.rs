@@ -1,21 +1,32 @@
 use anyhow::Result;
 use sp_runtime::{traits::One, FixedI128, FixedU128};
+use ulixee_client::api::runtime_types::pallet_price_index::PriceIndex;
+use ulx_primitives::tick::{Tick, Ticker};
 
 #[allow(dead_code)]
 pub struct ArgonPriceLookup {
-	pub interval: u64,
+	pub ticker: Ticker,
 	pub use_simulated_schedule: bool,
 	pub last_price: FixedU128,
-	pub last_price_timestamp: u64,
+	pub last_price_tick: Tick,
 }
 
 impl ArgonPriceLookup {
-	pub fn new(use_simulated_schedule: bool, interval: u64) -> Self {
+	pub fn new(
+		use_simulated_schedule: bool,
+		ticker: &Ticker,
+		last_price: Option<PriceIndex>,
+	) -> Self {
 		Self {
 			use_simulated_schedule,
-			interval,
-			last_price: FixedU128::from_u32(1),
-			last_price_timestamp: 0,
+			ticker: ticker.clone(),
+			last_price: last_price
+				.as_ref()
+				.map(|a| FixedU128::from_inner(a.argon_usd_price.0))
+				.unwrap_or(FixedU128::from_u32(1)),
+			last_price_tick: last_price
+				.map(|a| a.tick)
+				.unwrap_or(ticker.current().saturating_sub(1)),
 		}
 	}
 
@@ -27,30 +38,33 @@ impl ArgonPriceLookup {
 
 	pub async fn get_argon_price(
 		&mut self,
-		us_cpi_ratio: FixedI128,
-		timestamp_millis: u64,
+		target_price: FixedU128,
+		tick: Tick,
+		max_argon_change_per_tick_away_from_target: FixedU128,
 	) -> Result<FixedU128> {
-		let price = self.get_latest_price(us_cpi_ratio, timestamp_millis).await?;
-		if self.last_price < FixedU128::from_u32(1) {
-			self.last_price = FixedU128::from_u32(1);
-		}
-
+		let price = self
+			.get_latest_price(target_price, tick, max_argon_change_per_tick_away_from_target)
+			.await?;
 		self.last_price = price;
-		self.last_price_timestamp = timestamp_millis;
+		self.last_price_tick = tick;
 		Ok(price)
 	}
 
 	#[allow(unused_variables)]
 	pub async fn get_latest_price(
 		&self,
-		us_cpi_ratio: FixedI128,
-		timestamp_millis: u64,
+		target_price: FixedU128,
+		tick: Tick,
+		max_argon_change_per_tick_away_from_target: FixedU128,
 	) -> Result<FixedU128> {
-		let target_price = self.get_target_price(us_cpi_ratio);
 		if self.use_simulated_schedule {
 			#[cfg(feature = "fast-runtime")]
 			{
-				return Ok(self.simulate_price_change(target_price, timestamp_millis))
+				return Ok(self.simulate_price_change(
+					target_price,
+					tick,
+					max_argon_change_per_tick_away_from_target,
+				))
 			}
 		}
 
@@ -62,28 +76,30 @@ impl ArgonPriceLookup {
 
 #[cfg(feature = "fast-runtime")]
 mod dev {
+	use crate::argon_price::ArgonPriceLookup;
 	use chrono::{TimeZone, Timelike};
 	use rand::Rng;
 	use sp_runtime::{FixedU128, Saturating};
-
-	use crate::argon_price::ArgonPriceLookup;
+	use ulx_primitives::tick::Tick;
 
 	impl ArgonPriceLookup {
 		pub(crate) fn simulate_price_change(
 			&self,
 			target_price: FixedU128,
-			timestamp_millis: u64,
+			tick: Tick,
+			max_argon_change_per_tick_away_from_target: FixedU128,
 		) -> FixedU128 {
-			let ticks = if self.last_price_timestamp == 0 {
+			let ticks = if self.last_price_tick == 0 {
 				1
 			} else {
-				(timestamp_millis - self.last_price_timestamp) / self.interval
+				tick.saturating_sub(self.last_price_tick) as u64 / self.ticker.tick_duration_millis
 			}
 			.min(10);
 			let mut last_price = self.last_price;
 			let tz_offset = chrono::FixedOffset::west_opt(5 * 3600).unwrap();
 
-			let est = tz_offset.timestamp_millis_opt(self.last_price_timestamp as i64).unwrap();
+			let tick_millis = self.ticker.time_for_tick(tick) as i64;
+			let est = tz_offset.timestamp_millis_opt(tick_millis).unwrap();
 			let one_milligon = FixedU128::from_rational(1, 1000);
 			let one_centagon = FixedU128::from_rational(1, 100);
 
@@ -150,7 +166,20 @@ mod dev {
 					},
 				}
 			}
-			last_price.clamp(FixedU128::from_rational(1, 1000), FixedU128::from_u32(2))
+			let mut price =
+				last_price.clamp(FixedU128::from_rational(1, 1000), FixedU128::from_u32(2));
+			let start_price = self.last_price;
+
+			// TODO: how do we clamp this only when cpi is same direction
+			if price > start_price {
+				price = price
+					.min(start_price.saturating_add(max_argon_change_per_tick_away_from_target));
+			} else {
+				price = price
+					.max(start_price.saturating_sub(max_argon_change_per_tick_away_from_target));
+			}
+
+			price
 		}
 	}
 }
@@ -158,17 +187,20 @@ mod dev {
 #[cfg(test)]
 mod test {
 	use super::*;
+	use std::time::Duration;
 
 	#[test]
 	fn test_get_target_price() {
-		let argon_price_lookup = ArgonPriceLookup::new(false, 0);
+		let ticker = Ticker::start(Duration::from_secs(60));
+		let argon_price_lookup = ArgonPriceLookup::new(false, &ticker, None);
 		let us_cpi_ratio = FixedI128::from_float(0.00);
 		assert_eq!(argon_price_lookup.get_target_price(us_cpi_ratio), FixedU128::from_u32(1));
 	}
 
 	#[test]
 	fn test_get_target_price_with_cpi() {
-		let argon_price_lookup = ArgonPriceLookup::new(false, 0);
+		let ticker = Ticker::start(Duration::from_secs(60));
+		let argon_price_lookup = ArgonPriceLookup::new(false, &ticker, None);
 		let us_cpi_ratio = FixedI128::from_float(0.1);
 		assert_eq!(argon_price_lookup.get_target_price(us_cpi_ratio).to_float(), 1.1);
 	}
@@ -176,14 +208,17 @@ mod test {
 	#[test]
 	#[cfg(feature = "fast-runtime")]
 	fn can_use_simulated_schedule() {
-		use std::time::SystemTime;
-		let mut argon_price_lookup = ArgonPriceLookup::new(true, 100);
+		let ticker = Ticker::start(Duration::from_secs(60));
+		let mut argon_price_lookup = ArgonPriceLookup::new(true, &ticker, None);
 
 		argon_price_lookup.last_price = FixedU128::from_float(1.01);
-		argon_price_lookup.last_price_timestamp =
-			SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_millis() as u64;
-		let ts = argon_price_lookup.last_price_timestamp + 1000;
-		let price = argon_price_lookup.simulate_price_change(FixedU128::from_u32(1), ts);
+		argon_price_lookup.last_price_tick = ticker.current();
+		let ts = argon_price_lookup.last_price_tick + 1000;
+		let price = argon_price_lookup.simulate_price_change(
+			FixedU128::from_u32(1),
+			ts,
+			FixedU128::from_rational(1, 100),
+		);
 		assert_ne!(price, FixedU128::from_u32(0));
 	}
 }

@@ -15,7 +15,6 @@ use url::Url;
 
 use crate::{bitcoin_tip::bitcoin_loop, price_index::price_index_loop};
 
-mod argon_cpi;
 mod argon_price;
 mod bitcoin_tip;
 mod btc_price;

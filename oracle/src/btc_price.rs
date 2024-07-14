@@ -1,16 +1,12 @@
 use crate::utils::parse_f64;
 use anyhow::{anyhow, Result};
-use lazy_static::lazy_static;
 use reqwest::Client;
 use serde::Deserialize;
 use sp_runtime::{
 	traits::{One, Zero},
 	FixedU128,
 };
-use std::{
-	collections::HashMap,
-	sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 use tokio::join;
 
 pub struct BtcPriceLookup {
@@ -18,7 +14,9 @@ pub struct BtcPriceLookup {
 }
 
 #[cfg(test)]
-lazy_static! {
+use std::sync::{Arc, Mutex};
+#[cfg(test)]
+lazy_static::lazy_static! {
 	static ref MOCK_BTC_PRICE: Arc<Mutex<Option<FixedU128>>> = Arc::new(Mutex::new(None));
 }
 
@@ -28,7 +26,8 @@ impl BtcPriceLookup {
 	}
 
 	pub async fn get_btc_price(&self) -> Result<FixedU128> {
-		if cfg![test] {
+		#[cfg(test)]
+		{
 			let mut mock = MOCK_BTC_PRICE.lock().unwrap();
 			if let Some(x) = mock.take() {
 				*mock = Some(x.clone());

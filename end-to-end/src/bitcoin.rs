@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, str::FromStr, sync::Arc, time::SystemTime};
+use std::{collections::BTreeMap, str::FromStr, sync::Arc};
 
 use bitcoin::{
 	bip32::{DerivationPath, Fingerprint, Xpriv, Xpub},
@@ -12,7 +12,7 @@ use bitcoind::{
 	BitcoinD,
 };
 use rand::{rngs::OsRng, RngCore};
-use sp_arithmetic::{per_things::Percent, FixedI128, FixedU128};
+use sp_arithmetic::{per_things::Percent, FixedU128};
 use sp_core::{crypto::AccountId32, sr25519, Pair};
 
 use ulixee_client::{
@@ -22,8 +22,7 @@ use ulixee_client::{
 		runtime_types::{
 			pallet_vaults::pallet::VaultConfig,
 			sp_arithmetic::{
-				fixed_point::{FixedI128 as FixedI128Ext, FixedU128 as FixedU128Ext},
-				per_things::Percent as PercentExt,
+				fixed_point::FixedU128 as FixedU128Ext, per_things::Percent as PercentExt,
 			},
 		},
 		storage, tx,
@@ -134,18 +133,16 @@ async fn test_bitcoin_minting_e2e() -> anyhow::Result<()> {
 		creation.vault_id
 	};
 
+	let ticker = client.lookup_ticker().await.expect("ticker");
 	client
 		.live
 		.tx()
 		.sign_and_submit_then_watch_default(
 			&tx().price_index().submit(Index {
 				btc_usd_price: FixedU128Ext(FixedU128::from_rational(6_200_000, 1_00).into_inner()),
-				argon_cpi: FixedI128Ext(FixedI128::from_float(-0.1).into_inner()),
+				argon_usd_target_price: FixedU128Ext(FixedU128::from_float(0.99).into_inner()),
 				argon_usd_price: FixedU128Ext(FixedU128::from_rational(1_00, 1_00).into_inner()),
-				timestamp: SystemTime::now()
-					.duration_since(SystemTime::UNIX_EPOCH)
-					.unwrap()
-					.as_millis() as u64,
+				tick: ticker.current(),
 			}),
 			&Sr25519Signer::new(alice_sr25519.clone()),
 		)
