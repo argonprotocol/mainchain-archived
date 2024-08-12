@@ -82,6 +82,7 @@ impl TryInto<String> for NotaryName {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GenesisNotary<AccountId> {
 	pub account_id: AccountId,
 	pub public: NotaryPublic,
